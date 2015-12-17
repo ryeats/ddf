@@ -95,7 +95,7 @@
                                     mvn:ddf.admin/admin-app/${project.version}/xml/features
                                 </descriptor>
                                 <descriptor>
-                                    mvn:ddf.distribution/install-profiles/${install-profiles.app.version}/xml/features
+                                    mvn:ddf.distribution/install-profiles/${project.version}/xml/features
                                 </descriptor>
                             </descriptors>
                             <repository>${setup.folder}/${karaf.folder}/system</repository>
