@@ -69,7 +69,8 @@ public class SimpleSignTest {
 
     private static final String RELAY_STATE_VAL = "b0b4e449-7f69-413f-a844-61fe2256de19";
 
-    private static final String SINGLE_SIGN_ON_LOCATION = "https://localhost:8993/services/idp/login";
+    private static final String SINGLE_SIGN_ON_LOCATION =
+            "https://localhost:8993/services/idp/login";
 
     private String dsaCert;
 
@@ -91,12 +92,15 @@ public class SimpleSignTest {
                 Charsets.UTF_8);
 
         //Normally you would have the cert in a string already but for this test we will have to pull it out of the jks file
-        Certificate cert = ((Merlin) systemCrypto.getSignatureCrypto()).getKeyStore().getCertificate("dsa");
+        Certificate cert = ((Merlin) systemCrypto.getSignatureCrypto()).getKeyStore()
+                .getCertificate("dsa");
         StringWriter writer = new StringWriter();
         PemWriter pemWriter = new PemWriter(writer);
         pemWriter.writeObject(new PemObject("CERTIFICATE", cert.getEncoded()));
         pemWriter.flush();
-        dsaCert = writer.toString().replace("-----BEGIN CERTIFICATE-----","").replace("-----END CERTIFICATE-----","");
+        dsaCert = writer.toString()
+                .replace("-----BEGIN CERTIFICATE-----", "")
+                .replace("-----END CERTIFICATE-----", "");
 
     }
 
@@ -171,8 +175,7 @@ public class SimpleSignTest {
                 URLEncoder.encode(RELAY_STATE_VAL, "UTF-8"),
                 SIG_ALG,
                 URLEncoder.encode(signatureAlgorithm, "UTF-8"));
-        boolean valid = simpleSign.validateSignature(signedMessage,
-                signatureString, dsaCert);
+        boolean valid = simpleSign.validateSignature(signedMessage, signatureString, dsaCert);
         assertTrue("Signature was expected to be valid", valid);
 
     }
@@ -209,11 +212,9 @@ public class SimpleSignTest {
                 URLEncoder.encode(RELAY_STATE_VAL, "UTF-8"),
                 SIG_ALG,
                 URLEncoder.encode(signatureAlgorithm, "UTF-8"));
-        simpleSign.validateSignature(signedMessage,
-                signatureString, dsaCert);
+        simpleSign.validateSignature(signedMessage, signatureString, dsaCert);
 
     }
-
 
     /**
      * Deflates a value and Base64 encodes the result. This code is copied from RestSecurity because it would cause a circular dependency to use it directly..
