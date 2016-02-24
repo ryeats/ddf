@@ -43,24 +43,38 @@
     <bean id="persistenceStrategy"
           class="org.codice.ddf.configuration.store.felix.FelixPersistenceStrategy"/>
 
-    <bean id="configDirectoryPath" class="java.nio.file.Paths"
-          factory-method="get">
-        <argument value="file://${configFileDirectory}"/>
+    <!-- Base URI for DDF home -->
+    <bean id="ddfHomeFile" class="java.io.File">
+        <argument value="${ddf.home}"/>
     </bean>
 
-    <bean id="processedDirectoryPath" class="java.nio.file.Paths"
-          factory-method="get">
-        <argument value="file://${processedDirectory}"/>
+    <bean id="ddfHomeUri" class="java.net.URI" factory-ref="ddfHomeFile" factory-method="toURI"/>
+
+    <bean id="ddfHome" class="java.nio.file.Paths" factory-method="get">
+        <argument ref="ddfHomeUri"/>
     </bean>
 
-    <bean id="failedDirectoryPath" class="java.nio.file.Paths"
-          factory-method="get">
-        <argument value="file://${failedDirectory}"/>
+    <!-- Config Directory Path ${ddf.home}/etc/ -->
+    <bean id="configDirectoryPath" class="java.nio.file.Path" factory-ref="ddfHome"
+          factory-method="resolve">
+        <argument value="etc"/>
     </bean>
 
-    <bean id="exportedDirectoryPath" class="java.nio.file.Paths"
-          factory-method="get">
-        <argument value="file://${exportedDirectory}"/>
+    <!-- Processed Directory Path ${ddf.home}/etc/processed -->
+    <bean id="processedDirectoryPath" class="java.nio.file.Path" factory-ref="ddfHome"
+          factory-method="resolve">
+        <argument value="etc/processed"/>
+    </bean>
+
+    <!-- Failed Directory Path ${ddf.home}/etc/ -->
+    <bean id="failedDirectoryPath" class="java.nio.file.Path" factory-ref="ddfHome"
+          factory-method="resolve">
+        <argument value="etc/failed"/>
+    </bean>
+
+    <bean id="exportedDirectoryPath" class="java.nio.file.Path" factory-ref="ddfHome"
+          factory-method="resolve">
+        <argument value="etc/exported"/>
     </bean>
 
     <bean id="configurationFileFactory"
@@ -79,14 +93,14 @@
     </bean>
 
     <bean id="configDirectoryStream" class="java.nio.file.Files"
-        factory-method="newDirectoryStream">
+          factory-method="newDirectoryStream">
         <argument ref="configDirectoryPath"/>
         <argument value="*${configFileExtension}"/>
     </bean>
 
     <bean id="configurationFileDirectory"
-        class="org.codice.ddf.configuration.store.ConfigurationFileDirectory"
-        init-method="init">
+          class="org.codice.ddf.configuration.store.ConfigurationFileDirectory"
+          init-method="init">
         <argument ref="configDirectoryStream"/>
         <argument ref="processedDirectoryPath"/>
         <argument ref="failedDirectoryPath"/>
@@ -97,6 +111,6 @@
     </bean>
 
     <service id="configurationFileDirectoryService" ref="configurationFileDirectory"
-        auto-export="interfaces"/>
+             auto-export="interfaces"/>
 
 </blueprint>
