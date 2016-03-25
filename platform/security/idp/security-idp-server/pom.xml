@@ -157,8 +157,12 @@
             <groupId>ddf.platform.util</groupId>
             <artifactId>platform-util</artifactId>
         </dependency>
+        <dependency>
+            <groupId>ddf.platform.util</groupId>
+            <artifactId>platform-util</artifactId>
+        </dependency>
 
-        <!-- Groovy dependencies -->
+        <!--groovy dependencies-->
         <dependency>
             <groupId>org.ow2.asm</groupId>
             <artifactId>asm</artifactId>
@@ -188,10 +192,6 @@
             <artifactId>groovy-all</artifactId>
             <version>${groovy.version}</version>
             <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>ddf.platform.util</groupId>
-            <artifactId>platform-util</artifactId>
         </dependency>
     </dependencies>
     <dependencyManagement>
