@@ -363,6 +363,16 @@
             <version>${project.version}</version>
         </dependency>
         <dependency>
+            <groupId>ddf.catalog.plugin</groupId>
+            <artifactId>catalog-core-validator</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>ddf.catalog.plugin</groupId>
+            <artifactId>catalog-core-attribute-registryr</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
             <groupId>ddf.catalog.registry</groupId>
             <artifactId>catalog-registry-cswinputtransformer</artifactId>
             <version>${project.version}</version>
