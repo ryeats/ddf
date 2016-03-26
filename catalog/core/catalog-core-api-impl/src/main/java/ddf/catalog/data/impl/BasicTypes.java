@@ -15,7 +15,9 @@ package ddf.catalog.data.impl;
 
 import java.io.Serializable;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 
 import ddf.catalog.data.AttributeDescriptor;
 import ddf.catalog.data.AttributeType;
@@ -99,6 +101,8 @@ public class BasicTypes {
 
     public static final String VALIDATION_ERRORS = "validation-errors";
 
+    private static final Map<String, AttributeType> ATTRIBUTE_TYPE_MAP = new HashMap<>();
+
     static {
 
         AttributeType<Boolean> booleanType = new AttributeType<Boolean>() {
@@ -115,6 +119,7 @@ public class BasicTypes {
             }
         };
         BOOLEAN_TYPE = booleanType;
+        ATTRIBUTE_TYPE_MAP.put("BOOLEAN_TYPE", booleanType);
 
         AttributeType<Double> doubleType = new AttributeType<Double>() {
             private static final long serialVersionUID = 1L;
@@ -130,6 +135,7 @@ public class BasicTypes {
             }
         };
         DOUBLE_TYPE = doubleType;
+        ATTRIBUTE_TYPE_MAP.put("DOUBLE_TYPE", doubleType);
 
         AttributeType<Float> floatType = new AttributeType<Float>() {
             private static final long serialVersionUID = 1L;
@@ -145,6 +151,7 @@ public class BasicTypes {
             }
         };
         FLOAT_TYPE = floatType;
+        ATTRIBUTE_TYPE_MAP.put("FLOAT_TYPE", floatType);
 
         AttributeType<Integer> integerType = new AttributeType<Integer>() {
             private static final long serialVersionUID = 1L;
@@ -160,6 +167,7 @@ public class BasicTypes {
             }
         };
         INTEGER_TYPE = integerType;
+        ATTRIBUTE_TYPE_MAP.put("INTEGER_TYPE", integerType);
 
         AttributeType<Serializable> objectType = new AttributeType<Serializable>() {
             private static final long serialVersionUID = 1L;
@@ -175,6 +183,7 @@ public class BasicTypes {
             }
         };
         OBJECT_TYPE = objectType;
+        ATTRIBUTE_TYPE_MAP.put("OBJECT_TYPE", objectType);
 
         AttributeType<Short> shortType = new AttributeType<Short>() {
             private static final long serialVersionUID = 1L;
@@ -190,6 +199,7 @@ public class BasicTypes {
             }
         };
         SHORT_TYPE = shortType;
+        ATTRIBUTE_TYPE_MAP.put("SHORT_TYPE", shortType);
 
         AttributeType<Date> dateType = new AttributeType<Date>() {
             private static final long serialVersionUID = 1L;
@@ -205,6 +215,7 @@ public class BasicTypes {
             }
         };
         DATE_TYPE = dateType;
+        ATTRIBUTE_TYPE_MAP.put("DATE_TYPE", dateType);
 
         AttributeType<String> stringType = new AttributeType<String>() {
             private static final long serialVersionUID = 1L;
@@ -220,6 +231,7 @@ public class BasicTypes {
             }
         };
         STRING_TYPE = stringType;
+        ATTRIBUTE_TYPE_MAP.put("STRING_TYPE", stringType);
 
         AttributeType<String> xmlType = new AttributeType<String>() {
             private static final long serialVersionUID = 1L;
@@ -235,6 +247,7 @@ public class BasicTypes {
             }
         };
         XML_TYPE = xmlType;
+        ATTRIBUTE_TYPE_MAP.put("XML_TYPE", xmlType);
 
         AttributeType<Long> longType = new AttributeType<Long>() {
             private static final long serialVersionUID = 1L;
@@ -250,6 +263,7 @@ public class BasicTypes {
             }
         };
         LONG_TYPE = longType;
+        ATTRIBUTE_TYPE_MAP.put("LONG_TYPE", longType);
 
         AttributeType<byte[]> binaryType = new AttributeType<byte[]>() {
             private static final long serialVersionUID = 1L;
@@ -265,6 +279,7 @@ public class BasicTypes {
             }
         };
         BINARY_TYPE = binaryType;
+        ATTRIBUTE_TYPE_MAP.put("BINARY_TYPE", binaryType);
 
         AttributeType<String> geoType = new AttributeType<String>() {
             private static final long serialVersionUID = 1L;
@@ -280,6 +295,7 @@ public class BasicTypes {
             }
         };
         GEO_TYPE = geoType;
+        ATTRIBUTE_TYPE_MAP.put("GEO_TYPE", geoType);
 
         MetacardType basic = null;
         HashSet<AttributeDescriptor> descriptors = new HashSet<AttributeDescriptor>();
@@ -407,6 +423,10 @@ public class BasicTypes {
         basic = new MetacardTypeImpl(MetacardType.DEFAULT_METACARD_TYPE_NAME, descriptors);
 
         BASIC_METACARD = basic;
+    }
+
+    public static AttributeType getAttributeType(String type) {
+        return ATTRIBUTE_TYPE_MAP.get(type);
     }
 
     /**
