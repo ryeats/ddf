@@ -398,11 +398,6 @@
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>ddf.catalog.plugin</groupId>
-            <artifactId>resource-usage-plugin</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
             <groupId>ddf.catalog.transformer</groupId>
             <artifactId>catalog-transformer-pdf</artifactId>
             <version>${project.version}</version>
