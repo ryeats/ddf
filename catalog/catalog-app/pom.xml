@@ -363,13 +363,13 @@
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>ddf.catalog.plugin</groupId>
+            <groupId>ddf.catalog.core</groupId>
             <artifactId>catalog-core-validator</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>ddf.catalog.plugin</groupId>
-            <artifactId>catalog-core-attribute-registryr</artifactId>
+            <groupId>ddf.catalog.core</groupId>
+            <artifactId>catalog-core-attribute-registry</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
