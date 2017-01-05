@@ -113,20 +113,17 @@ public class ApplicationImpl implements Application, Comparable<Application> {
         int numberOfParts;
 
         // DDF-2596
-        repoNameParts = repoName.split("-(?=[0-9])");
+        repoNameParts = repoName.split("-(?=[0-9])", 2);
         numberOfParts = repoNameParts.length;
         switch (numberOfParts) {
         case 1:
             name = repoName;
             version = "0.0.0";
             break;
-        case 2:
+        default:
             name = repoNameParts[0];
             version = repoNameParts[1];
             break;
-        case 3:
-            throw new RuntimeException(String.format("Could not tokenize repository name of '%s'",
-                    repoName));
         }
     }
 
