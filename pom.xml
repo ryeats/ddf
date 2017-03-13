@@ -926,6 +926,7 @@
         <module>libs</module>
         <module>platform</module>
         <module>catalog</module>
+        <module>broker</module>
         <module>distribution</module>
     </modules>
 </project>
