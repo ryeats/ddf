@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+/*
+ * Copyright 2016 Connexta, LLC
+ * <p>
+ * Unlimited Government Rights (FAR Subpart 27.4) Government right to use, disclose, reproduce,
+ * prepare derivative works, distribute copies to the public, and perform and display publicly, in
+ * any manner and for any purpose, and to have or permit others to do so.
+ */
+ -->
+
+<blueprint default-activation="lazy"
+           xmlns="http://www.osgi.org/xmlns/blueprint/v1.0.0"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation="
+              http://www.osgi.org/xmlns/blueprint/v1.0.0 http://www.osgi.org/xmlns/blueprint/v1.0.0/blueprint.xsd
+              http://camel.apache.org/schema/blueprint http://camel.apache.org/schema/blueprint/camel-blueprint.xsd">
+
+    <reference id="jmsConnectionFactory" interface="javax.jms.ConnectionFactory"/>
+
+    <bean id="connectionResource" class="org.apache.camel.component.sjms.jms.ConnectionFactoryResource" destroy-method="drainPool">
+        <argument  value="1"/>
+        <argument ref="jmsConnectionFactory"/>
+    </bean>
+
+    <bean id="sjms" class="org.apache.camel.component.sjms.SjmsComponent">
+        <property name="connectionResource" ref="connectionResource"/>
+    </bean>
+
+    <camelContext xmlns="http://camel.apache.org/schema/blueprint" id="simple-test-route">
+        <route id="simpleTestRoute2">
+            <from uri="sjms:openwire"/>
+            <to uri="stream:out"/>
+        </route>
+    </camelContext>
+
+</blueprint>
