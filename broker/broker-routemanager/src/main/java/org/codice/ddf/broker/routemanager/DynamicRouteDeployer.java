@@ -34,7 +34,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Bundle that monitors for camel routes defined in xml files placed in <GDES_HOME>/etc/routes and
+ * Bundle that monitors for camel routes defined in xml files placed in <DDF_HOME>/etc/routes and
  * then loads them into the camelContext
  */
 public class DynamicRouteDeployer {

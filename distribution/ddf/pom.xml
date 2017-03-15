@@ -344,7 +344,7 @@
             <type>xml</type>
         </dependency>
         <dependency>
-            <groupId>ddf.broker</groupId>
+            <groupId>org.codice.ddf.broker</groupId>
             <artifactId>broker-app</artifactId>
             <version>${project.version}</version>
             <classifier>features</classifier>

@@ -16,7 +16,7 @@
          xmlns="http://maven.apache.org/POM/4.0.0"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <parent>
-        <groupId>ddf.broker</groupId>
+        <groupId>org.codice.ddf.broker</groupId>
         <artifactId>broker</artifactId>
         <version>2.11.0-SNAPSHOT</version>
     </parent>
@@ -25,7 +25,6 @@
     <name>DDF :: Broker :: Route Manager</name>
     <packaging>bundle</packaging>
 
-    <groupId>org.codice.ddf.broker.routemanager</groupId>
     <artifactId>broker-routemanager</artifactId>
 
     <dependencies>
