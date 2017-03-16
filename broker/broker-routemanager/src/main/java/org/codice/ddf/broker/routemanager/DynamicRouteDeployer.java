@@ -18,7 +18,9 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.camel.CamelContext;
 import org.apache.camel.model.RouteDefinition;
@@ -34,6 +36,8 @@ public class DynamicRouteDeployer implements ArtifactInstaller {
     private static final Logger LOGGER = LoggerFactory.getLogger(DynamicRouteDeployer.class);
 
     private final CamelContext camelContext;
+
+    private Map<File, List<RouteDefinition>> processedFiles;
 
     public DynamicRouteDeployer(CamelContext camelContext) {
         this.camelContext = camelContext;
@@ -58,6 +62,7 @@ public class DynamicRouteDeployer implements ArtifactInstaller {
                     .getRoutes();
 
             camelContext.addRouteDefinitions(routeDefinitions);
+            getProcessedFiles().put(file, routeDefinitions);
             camelContext.startAllRoutes();
 
         } catch (FileNotFoundException e) {
@@ -82,15 +87,14 @@ public class DynamicRouteDeployer implements ArtifactInstaller {
     @Override
     public void uninstall(File file) throws Exception {
         try (InputStream is = new FileInputStream(file)) {
-            List<RouteDefinition> routeDefinitions = camelContext.loadRoutesDefinition(is)
-                    .getRoutes();
             LOGGER.info("Removing route path: {}", file.getName());
             try {
-                camelContext.removeRouteDefinitions(routeDefinitions);
+                camelContext.removeRouteDefinitions(getProcessedFiles().get(file));
             } catch (Exception e) {
                 LOGGER.warn("Failed to remove routes definition. See debug log for stack trace.");
                 LOGGER.debug(e.getMessage(), e);
             }
+            processedFiles.remove(file);
         }
     }
 
@@ -99,4 +103,12 @@ public class DynamicRouteDeployer implements ArtifactInstaller {
         return file.getName()
                 .endsWith(".xml");
     }
+
+    public Map<File, List<RouteDefinition>> getProcessedFiles() {
+        if (processedFiles == null) {
+            processedFiles = new HashMap<>();
+        }
+        return processedFiles;
+    }
+
 }
