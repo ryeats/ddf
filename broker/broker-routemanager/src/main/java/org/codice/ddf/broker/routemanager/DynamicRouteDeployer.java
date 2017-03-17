@@ -15,8 +15,6 @@ package org.codice.ddf.broker.routemanager;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
 import java.util.List;
@@ -65,13 +63,6 @@ public class DynamicRouteDeployer implements ArtifactInstaller {
             processedFiles.put(file, routeDefinitions);
             camelContext.startAllRoutes();
 
-        } catch (FileNotFoundException e) {
-            LOGGER.warn("File {} not found. See debug log for stack trace.", file.getName());
-            LOGGER.debug(e.getMessage(), e);
-        } catch (IOException e) {
-            LOGGER.warn("IO Exception when accessing {}. See debug log for stack trace.",
-                    file.getName());
-            LOGGER.debug(e.getMessage(), e);
         } catch (Exception e) {
             LOGGER.warn("Failed to read route definition. See debug log for stack trace.");
             LOGGER.debug(e.getMessage(), e);
@@ -86,16 +77,14 @@ public class DynamicRouteDeployer implements ArtifactInstaller {
 
     @Override
     public void uninstall(File file) throws Exception {
-        try (InputStream is = new FileInputStream(file)) {
-            LOGGER.info("Removing route path: {}", file.getName());
-            try {
-                camelContext.removeRouteDefinitions(processedFiles.get(file));
-            } catch (Exception e) {
-                LOGGER.warn("Failed to remove routes definition. See debug log for stack trace.");
-                LOGGER.debug(e.getMessage(), e);
-            }
-            processedFiles.remove(file);
+        LOGGER.info("Removing route path: {}", file.getName());
+        try {
+            camelContext.removeRouteDefinitions(processedFiles.get(file));
+        } catch (Exception e) {
+            LOGGER.warn("Failed to remove routes definition. See debug log for stack trace.");
+            LOGGER.debug(e.getMessage(), e);
         }
+        processedFiles.remove(file);
     }
 
     @Override
