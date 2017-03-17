@@ -37,7 +37,7 @@ public class DynamicRouteDeployer implements ArtifactInstaller {
 
     private final CamelContext camelContext;
 
-    private Map<File, List<RouteDefinition>> processedFiles;
+    private Map<File, List<RouteDefinition>> processedFiles = new HashMap<>();
 
     public DynamicRouteDeployer(CamelContext camelContext) {
         this.camelContext = camelContext;
@@ -62,7 +62,7 @@ public class DynamicRouteDeployer implements ArtifactInstaller {
                     .getRoutes();
 
             camelContext.addRouteDefinitions(routeDefinitions);
-            getProcessedFiles().put(file, routeDefinitions);
+            processedFiles.put(file, routeDefinitions);
             camelContext.startAllRoutes();
 
         } catch (FileNotFoundException e) {
@@ -89,7 +89,7 @@ public class DynamicRouteDeployer implements ArtifactInstaller {
         try (InputStream is = new FileInputStream(file)) {
             LOGGER.info("Removing route path: {}", file.getName());
             try {
-                camelContext.removeRouteDefinitions(getProcessedFiles().get(file));
+                camelContext.removeRouteDefinitions(processedFiles.get(file));
             } catch (Exception e) {
                 LOGGER.warn("Failed to remove routes definition. See debug log for stack trace.");
                 LOGGER.debug(e.getMessage(), e);
@@ -102,13 +102,6 @@ public class DynamicRouteDeployer implements ArtifactInstaller {
     public boolean canHandle(File file) {
         return file.getName()
                 .endsWith(".xml");
-    }
-
-    public Map<File, List<RouteDefinition>> getProcessedFiles() {
-        if (processedFiles == null) {
-            processedFiles = new HashMap<>();
-        }
-        return processedFiles;
     }
 
 }
