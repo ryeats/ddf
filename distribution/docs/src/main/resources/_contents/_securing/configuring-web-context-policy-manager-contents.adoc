@@ -60,6 +60,10 @@ Any web context that allows or requires specific authentication types should be 
 The fields for required attributes allows configuring certain contexts to only be accessible to users with pre-defined attributes.
 For example, the default required attribute for the `/admin` context is `role=system-admin`, limiting access to the ${admin-console} to system administrators
 
+===== Compartmentalize Admin UI Access
+
+The Web Context Policy Manager can be used to compartmentalize access to specific apps in the Admin UI. For example, the Broker App has an `Undelivered Messages UI` which can be restricted to specific roles by using the context "/admin/undeliveredMessages"
+
 ===== White Listed Contexts
 
 White listed contexts are trusted contexts which will bypass security.
