@@ -47,9 +47,10 @@ import org.ops4j.pax.exam.Option;
 import org.ops4j.pax.exam.junit.PaxExam;
 import org.ops4j.pax.exam.spi.reactors.ExamReactorStrategy;
 import org.ops4j.pax.exam.spi.reactors.PerClass;
+import org.ops4j.pax.exam.spi.reactors.PerSuite;
 
 @RunWith(PaxExam.class)
-@ExamReactorStrategy(PerClass.class)
+@ExamReactorStrategy(PerSuite.class)
 public class MessageBrokerTest extends AbstractIntegrationTest {
 
     private static final int TIMEOUT_IN_SECONDS = 60;
@@ -138,13 +139,9 @@ public class MessageBrokerTest extends AbstractIntegrationTest {
 
     @BeforeExam
     public void beforeExam() throws Exception {
-        basePort = getBasePort();
-        getAdminConfig().setLogLevels();
-
+        waitForSystemReady();
         getServiceManager().waitForRequiredApps(REQUIRED_APPS);
         setupCamelContext();
-        configureRestForGuest();
-        getSecurityPolicy().waitForGuestAuthReady(REST_PATH.getUrl() + "?_wadl");
         FileUtils.copyInputStreamToFile(AbstractIntegrationTest.getFileContentAsStream(
                 "sdk-example-route.xml",
                 AbstractIntegrationTest.class), Paths.get(ddfHome, "etc", "routes")
