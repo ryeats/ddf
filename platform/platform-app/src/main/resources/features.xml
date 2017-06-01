@@ -1095,4 +1095,31 @@
         <bundle>mvn:ddf.platform.email/platform-email-impl/${project.version}</bundle>
     </feature>
 
+    <feature name="hawtio-core" install="manual" version="${hawtio.version}">
+        <details>Installs the core hawtio war file with minimal extensions</details>
+        <feature>war</feature>
+        <bundle>mvn:io.hawt/hawtio-json-schema-mbean/${hawtio.version}</bundle>
+        <bundle>mvn:io.hawt/hawtio-web/${hawtio.version}/war</bundle>
+
+        <config name="jmx.acl.hawtio.plugin">
+            * = *
+        </config>
+
+    </feature>
+
+    <feature name="hawtio-log" install="manual" version="${hawtio.version}">
+        <details>Installs the hawtio logging</details>
+        <feature>hawtio-core</feature>
+        <bundle>mvn:io.hawt/hawtio-insight-log/${hawtio.version}</bundle>
+        <bundle>mvn:io.hawt/hawtio-insight-log-osgi/${hawtio.version}</bundle>
+        <bundle dependency="true">mvn:com.fasterxml.jackson.core/jackson-core/${jackson-version}
+        </bundle>
+        <bundle dependency="true">
+            mvn:com.fasterxml.jackson.core/jackson-annotations/${jackson-version}
+        </bundle>
+        <bundle dependency="true">
+            mvn:com.fasterxml.jackson.core/jackson-databind/${jackson-version}
+        </bundle>
+    </feature>
+
 </features>
