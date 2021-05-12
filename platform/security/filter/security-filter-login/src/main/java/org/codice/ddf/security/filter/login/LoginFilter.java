@@ -151,9 +151,9 @@ public class LoginFilter implements SecurityFilter {
     subject.execute(
         () -> {
           // attach subject to the http session
-          if (contextPolicyManager.getSessionAccess()) {
-            addToSession(httpRequest, subject);
-          }
+          //          if (contextPolicyManager.getSessionAccess()) {
+          //            addToSession(httpRequest, subject);
+          //          }
 
           PrivilegedExceptionAction<Void> action =
               () -> {

@@ -36,8 +36,8 @@
 
     <!-- Rank set to Integer.MIN_VALUE so that DoPrivilegedFilter will run last. This prevents
          security policy permission requirements from leaking up to the global http filters -->
-    <service id="doPrivilegedFilter" interface="org.codice.ddf.platform.filter.http.HttpFilter" ranking="-2147483648">
-        <bean class="org.codice.ddf.pax.web.jetty.DoPrivilegedFilter"/>
-    </service>
+<!--    <service id="doPrivilegedFilter" interface="org.codice.ddf.platform.filter.http.HttpFilter" ranking="-2147483648">-->
+<!--        <bean class="org.codice.ddf.pax.web.jetty.DoPrivilegedFilter"/>-->
+<!--    </service>-->
 
 </blueprint>
