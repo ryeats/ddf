@@ -14,10 +14,11 @@
 package org.codice.ddf.platform.filter;
 
 import java.io.IOException;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
 public interface SecurityFilterChain {
-  void doFilter(ServletRequest var1, ServletResponse var2)
-      throws IOException, AuthenticationException;
+  void doFilter(HttpServletRequest var1, HttpServletResponse var2)
+      throws IOException, ServletException;
 }

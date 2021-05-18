@@ -29,16 +29,14 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.stream.Collectors;
 import javax.servlet.ServletException;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.ParserConfigurationException;
 import org.apache.commons.lang.StringUtils;
 import org.apache.shiro.session.SessionException;
 import org.apache.shiro.subject.PrincipalCollection;
-import org.codice.ddf.platform.filter.AuthenticationException;
 import org.codice.ddf.platform.filter.SecurityFilter;
 import org.codice.ddf.platform.filter.SecurityFilterChain;
 import org.codice.ddf.platform.util.XMLUtils;
@@ -95,10 +93,11 @@ public class LoginFilter implements SecurityFilter {
    */
   @Override
   public void doFilter(
-      final ServletRequest request, final ServletResponse response, final SecurityFilterChain chain)
-      throws IOException, AuthenticationException {
+      final HttpServletRequest request,
+      final HttpServletResponse response,
+      final SecurityFilterChain chain)
+      throws IOException, ServletException {
     LOGGER.debug("Performing doFilter() on LoginFilter");
-    HttpServletRequest httpRequest = (HttpServletRequest) request;
 
     // Skip filter if no authentication policy
     if (request.getAttribute(ContextPolicy.NO_AUTH_POLICY) != null) {
@@ -109,7 +108,7 @@ public class LoginFilter implements SecurityFilter {
 
     // grab token from httpRequest
     BaseAuthenticationToken token;
-    Object ddfAuthToken = httpRequest.getAttribute(AUTHENTICATION_TOKEN_KEY);
+    Object ddfAuthToken = request.getAttribute(AUTHENTICATION_TOKEN_KEY);
     if (ddfAuthToken instanceof HandlerResult
         && ((HandlerResult) ddfAuthToken).getToken() instanceof BaseAuthenticationToken) {
       token = (BaseAuthenticationToken) ((HandlerResult) ddfAuthToken).getToken();
@@ -119,11 +118,11 @@ public class LoginFilter implements SecurityFilter {
     }
 
     token.setX509Certs(
-        (X509Certificate[]) httpRequest.getAttribute("javax.servlet.request.X509Certificate"));
-    token.setRequestURI(httpRequest.getRequestURI());
+        (X509Certificate[]) request.getAttribute("javax.servlet.request.X509Certificate"));
+    token.setRequestURI(request.getRequestURI());
 
     if (securityManager == null) {
-      throw new AuthenticationException("Unable to authenticate user, system is not available.");
+      throw new IllegalStateException("Unable to authenticate user, system is not available.");
     }
     // get subject from the token
     Subject subject;
@@ -140,16 +139,18 @@ public class LoginFilter implements SecurityFilter {
       return;
     }
 
+    // TODO should we remove this since its no longer necessary
     // subject is now resolved, perform request as that subject
-    httpRequest.setAttribute(SecurityConstants.SECURITY_SUBJECT, subject);
+    request.setAttribute(SecurityConstants.SECURITY_SUBJECT, subject);
     LOGGER.debug(
         "Now performing request as user {} for {}",
         subject.getPrincipal(),
-        StringUtils.isNotBlank(httpRequest.getContextPath())
-            ? httpRequest.getContextPath()
-            : httpRequest.getServletPath());
+        StringUtils.isNotBlank(request.getContextPath())
+            ? request.getContextPath()
+            : request.getServletPath());
     subject.execute(
         () -> {
+
           // attach subject to the http session
           //          if (contextPolicyManager.getSessionAccess()) {
           //            addToSession(httpRequest, subject);
@@ -173,7 +174,7 @@ public class LoginFilter implements SecurityFilter {
                         .collect(Collectors.toSet()),
                     emptySet,
                     emptySet);
-            httpRequest.setAttribute(SecurityConstants.SECURITY_JAVA_SUBJECT, javaSubject);
+            request.setAttribute(SecurityConstants.SECURITY_JAVA_SUBJECT, javaSubject);
             javax.security.auth.Subject.doAs(javaSubject, action);
           } else {
             LOGGER.debug("Subject had no security assertion.");

@@ -47,7 +47,6 @@ import org.apache.wss4j.dom.validate.Credential;
 import org.apache.wss4j.dom.validate.Validator;
 import org.bouncycastle.asn1.ASN1OctetString;
 import org.bouncycastle.asn1.x509.SubjectKeyIdentifier;
-import org.codice.ddf.platform.filter.AuthenticationFailureException;
 import org.codice.ddf.platform.util.XMLUtils;
 import org.codice.ddf.platform.util.properties.PropertiesLoader;
 import org.codice.ddf.security.handler.SAMLAuthenticationToken;
@@ -114,10 +113,9 @@ public class SamlAssertionValidatorImpl implements SamlAssertionValidator {
    * certs.
    *
    * @param token token to validate
-   * @throws AuthenticationFailureException thrown when the cert fails to validate
    */
   @Override
-  public void validate(SAMLAuthenticationToken token) throws AuthenticationFailureException {
+  public boolean validate(SAMLAuthenticationToken token) {
     try {
       LOGGER.debug("Validation received SAML Assertion");
 
@@ -133,8 +131,7 @@ public class SamlAssertionValidatorImpl implements SamlAssertionValidator {
         }
       }
       if (securityAssertion == null) {
-        throw new AuthenticationFailureException(
-            "Unable to validate SAML token. Token is not SAML.");
+        return false;
       }
       SamlAssertionWrapper assertion =
           new SamlAssertionWrapper((Element) securityAssertion.getToken());
@@ -181,11 +178,12 @@ public class SamlAssertionValidatorImpl implements SamlAssertionValidator {
 
     } catch (SecurityServiceException e) {
       LOGGER.debug("Unable to get subject from SAML request.", e);
-      throw new AuthenticationFailureException(e);
+      return false;
     } catch (WSSecurityException e) {
       LOGGER.debug("Unable to read/validate security token from request.", e);
-      throw new AuthenticationFailureException(e);
+      return false;
     }
+    return true;
   }
 
   /**

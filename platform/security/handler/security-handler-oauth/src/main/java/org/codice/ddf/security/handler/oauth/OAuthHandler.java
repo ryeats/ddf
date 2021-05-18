@@ -14,11 +14,9 @@
 package org.codice.ddf.security.handler.oauth;
 
 import java.io.IOException;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
+import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import org.codice.ddf.platform.filter.AuthenticationFailureException;
 import org.codice.ddf.platform.filter.SecurityFilterChain;
 import org.codice.ddf.security.handler.HandlerResultImpl;
 import org.codice.ddf.security.handler.OidcAuthenticationToken;
@@ -52,11 +50,12 @@ public class OAuthHandler implements AuthenticationHandler {
 
   @Override
   public HandlerResult getNormalizedToken(
-      ServletRequest request, ServletResponse response, SecurityFilterChain chain, boolean resolve)
-      throws AuthenticationFailureException {
+      HttpServletRequest httpRequest,
+      HttpServletResponse httpResponse,
+      SecurityFilterChain chain,
+      boolean resolve)
+      throws ServletException {
 
-    HttpServletRequest httpRequest = (HttpServletRequest) request;
-    HttpServletResponse httpResponse = (HttpServletResponse) response;
     if (httpRequest.getMethod().equals("HEAD")) {
       return processHeadRequest(httpResponse);
     }
@@ -123,19 +122,20 @@ public class OAuthHandler implements AuthenticationHandler {
 
   @Override
   public HandlerResult handleError(
-      ServletRequest servletRequest, ServletResponse servletResponse, SecurityFilterChain chain) {
+      HttpServletRequest servletRequest,
+      HttpServletResponse servletResponse,
+      SecurityFilterChain chain) {
     LOGGER.debug("In error handler for OAuth - no action taken.");
     return noActionResult;
   }
 
   private HandlerResult processHeadRequest(HttpServletResponse httpResponse)
-      throws AuthenticationFailureException {
+      throws ServletException {
     httpResponse.setStatus(HttpServletResponse.SC_OK);
     try {
       httpResponse.flushBuffer();
     } catch (IOException e) {
-      throw new AuthenticationFailureException(
-          "Unable to send response to HEAD message from OAUTH client.");
+      throw new ServletException("Unable to send response to HEAD message from OAUTH client.", e);
     }
     return noActionResult;
   }

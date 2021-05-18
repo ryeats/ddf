@@ -35,10 +35,10 @@ import org.apache.wss4j.common.crypto.CryptoType;
 import org.apache.wss4j.common.saml.OpenSAMLUtil;
 import org.apache.wss4j.common.util.DOM2Writer;
 import org.bouncycastle.util.encoders.Base64;
-import org.codice.ddf.platform.filter.AuthenticationFailureException;
 import org.codice.ddf.security.handler.SAMLAuthenticationToken;
 import org.codice.ddf.security.util.SAMLUtils;
 import org.joda.time.DateTime;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -161,7 +161,7 @@ public class SamlAssertionValidatorImplTest {
     X509Certificate[] certs = {certificate};
     samlAuthenticationToken.setX509Certs(certs);
 
-    samlAssertionValidator.validate(samlAuthenticationToken);
+    Assert.assertTrue(samlAssertionValidator.validate(samlAuthenticationToken));
   }
 
   @Test
@@ -179,10 +179,10 @@ public class SamlAssertionValidatorImplTest {
     X509Certificate[] certs = {certificate};
     samlAuthenticationToken.setX509Certs(certs);
 
-    samlAssertionValidator.validate(samlAuthenticationToken);
+    Assert.assertTrue(samlAssertionValidator.validate(samlAuthenticationToken));
   }
 
-  @Test(expected = AuthenticationFailureException.class)
+  @Test
   public void testValidateUnsignedAssertion() throws Exception {
     Assertion assertion = createAssertion(false, true, ISSUER, new DateTime().plusDays(3));
 
@@ -194,10 +194,10 @@ public class SamlAssertionValidatorImplTest {
         new SAMLAuthenticationToken(
             simplePrincipalCollection, simplePrincipalCollection, "127.0.0.1");
 
-    samlAssertionValidator.validate(samlAuthenticationToken);
+    Assert.assertFalse(samlAssertionValidator.validate(samlAuthenticationToken));
   }
 
-  @Test(expected = AuthenticationFailureException.class)
+  @Test
   public void testValidateIncorrectSamlVersion() throws Exception {
     org.opensaml.saml.saml1.core.Assertion assertion =
         new org.opensaml.saml.saml1.core.impl.AssertionBuilder().buildObject();
@@ -210,10 +210,10 @@ public class SamlAssertionValidatorImplTest {
         new SAMLAuthenticationToken(
             simplePrincipalCollection, simplePrincipalCollection, "127.0.0.1");
 
-    samlAssertionValidator.validate(samlAuthenticationToken);
+    Assert.assertFalse(samlAssertionValidator.validate(samlAuthenticationToken));
   }
 
-  @Test(expected = AuthenticationFailureException.class)
+  @Test
   public void testValidateExpiredAssertion() throws Exception {
     Assertion assertion = createAssertion(false, true, ISSUER, new DateTime().minusSeconds(10));
 
@@ -225,10 +225,10 @@ public class SamlAssertionValidatorImplTest {
         new SAMLAuthenticationToken(
             simplePrincipalCollection, simplePrincipalCollection, "127.0.0.1");
 
-    samlAssertionValidator.validate(samlAuthenticationToken);
+    Assert.assertFalse(samlAssertionValidator.validate(samlAuthenticationToken));
   }
 
-  @Test(expected = AuthenticationFailureException.class)
+  @Test
   public void testValidateInvalidIssuer() throws Exception {
     Assertion assertion = createAssertion(false, true, "WRONG", new DateTime().minusSeconds(10));
 
@@ -240,10 +240,10 @@ public class SamlAssertionValidatorImplTest {
         new SAMLAuthenticationToken(
             simplePrincipalCollection, simplePrincipalCollection, "127.0.0.1");
 
-    samlAssertionValidator.validate(samlAuthenticationToken);
+    Assert.assertFalse(samlAssertionValidator.validate(samlAuthenticationToken));
   }
 
-  @Test(expected = AuthenticationFailureException.class)
+  @Test
   public void testValidateInvalidSignature() throws Exception {
     Assertion assertion = createAssertion(false, false, "WRONG", new DateTime().minusSeconds(10));
 
@@ -255,7 +255,7 @@ public class SamlAssertionValidatorImplTest {
         new SAMLAuthenticationToken(
             simplePrincipalCollection, simplePrincipalCollection, "127.0.0.1");
 
-    samlAssertionValidator.validate(samlAuthenticationToken);
+    Assert.assertFalse(samlAssertionValidator.validate(samlAuthenticationToken));
   }
 
   private Assertion createAssertion(

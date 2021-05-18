@@ -16,9 +16,9 @@ package org.codice.ddf.pax.web.jetty;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.LinkedList;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
-import org.codice.ddf.platform.filter.AuthenticationException;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import org.codice.ddf.platform.filter.SecurityFilter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -65,8 +65,8 @@ public class SecurityFilterChain implements org.codice.ddf.platform.filter.Secur
   }
 
   @Override
-  public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse)
-      throws IOException, AuthenticationException {
+  public void doFilter(HttpServletRequest servletRequest, HttpServletResponse servletResponse)
+      throws IOException, ServletException {
     if (iterator == null) {
       iterator = filters.iterator();
     }

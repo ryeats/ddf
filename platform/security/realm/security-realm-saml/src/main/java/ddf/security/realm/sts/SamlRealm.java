@@ -26,7 +26,6 @@ import org.apache.shiro.authc.credential.CredentialsMatcher;
 import org.apache.shiro.realm.AuthenticatingRealm;
 import org.apache.shiro.subject.PrincipalCollection;
 import org.apache.shiro.subject.SimplePrincipalCollection;
-import org.codice.ddf.platform.filter.AuthenticationFailureException;
 import org.codice.ddf.security.handler.BaseAuthenticationToken;
 import org.codice.ddf.security.handler.SAMLAuthenticationToken;
 import org.codice.ddf.security.saml.assertion.validator.SamlAssertionValidator;
@@ -69,13 +68,12 @@ public class SamlRealm extends AuthenticatingRealm {
 
     // perform validation
     if (token instanceof SAMLAuthenticationToken) {
-      try {
-        samlAssertionValidator.validate((SAMLAuthenticationToken) token);
+      if (samlAssertionValidator.validate((SAMLAuthenticationToken) token)) {
         credential = token.getCredentials();
-      } catch (AuthenticationFailureException e) {
+      } else {
         String msg = "Unable to validate request's authentication.";
         LOGGER.info(msg);
-        throw new AuthenticationException(msg, e);
+        throw new AuthenticationException(msg);
       }
     }
 

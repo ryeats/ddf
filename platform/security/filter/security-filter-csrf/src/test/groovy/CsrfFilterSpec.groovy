@@ -16,7 +16,6 @@
 import com.google.common.collect.ImmutableList
 import com.google.common.net.HttpHeaders
 import ddf.security.audit.SecurityLogger
-import org.codice.ddf.platform.filter.AuthenticationException
 import org.codice.ddf.platform.filter.SecurityFilterChain
 import org.codice.ddf.security.filter.csrf.CsrfFilter
 import org.eclipse.jetty.http.HttpMethod
@@ -24,6 +23,7 @@ import spock.lang.Specification
 import spock.lang.Unroll
 import spock.util.environment.RestoreSystemProperties
 
+import javax.servlet.ServletException
 import javax.servlet.http.HttpServletRequest
 import javax.servlet.http.HttpServletResponse
 
@@ -96,7 +96,7 @@ class CsrfFilterSpec extends Specification {
     }
     try {
       csrfFilter.doFilter(request, response, chain)
-    } catch (AuthenticationException e) {
+    } catch (ServletException e) {
 
     }
     then:
@@ -179,7 +179,7 @@ class CsrfFilterSpec extends Specification {
 
     try {
       csrfFilter.doFilter(request, response, chain)
-    } catch (AuthenticationException e) {
+    } catch (ServletException e) {
 
     }
     then:
@@ -245,7 +245,7 @@ class CsrfFilterSpec extends Specification {
 
     try {
       csrfFilter.doFilter(request, response, chain)
-    } catch (AuthenticationException e) {
+    } catch (ServletException e) {
 
     }
     then:
@@ -313,7 +313,7 @@ class CsrfFilterSpec extends Specification {
 
     try {
       csrfFilter.doFilter(request, response, chain)
-    } catch (AuthenticationException e) {
+    } catch (ServletException e) {
 
     }
     then:

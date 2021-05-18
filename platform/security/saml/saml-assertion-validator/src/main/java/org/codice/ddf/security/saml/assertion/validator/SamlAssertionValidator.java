@@ -13,12 +13,11 @@
  */
 package org.codice.ddf.security.saml.assertion.validator;
 
-import org.codice.ddf.platform.filter.AuthenticationFailureException;
 import org.codice.ddf.security.handler.SAMLAuthenticationToken;
 
 public interface SamlAssertionValidator {
 
-  void validate(SAMLAuthenticationToken token) throws AuthenticationFailureException;
+  boolean validate(SAMLAuthenticationToken token);
 
   void setSignatureProperties(String signatureProperties);
 

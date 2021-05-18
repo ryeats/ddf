@@ -32,13 +32,11 @@ import ddf.security.audit.SecurityLogger;
 import ddf.security.common.PrincipalHolder;
 import java.io.IOException;
 import java.util.Collections;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
+import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import org.apache.shiro.subject.PrincipalCollection;
-import org.codice.ddf.platform.filter.AuthenticationException;
 import org.codice.ddf.platform.filter.SecurityFilterChain;
 import org.codice.ddf.security.handler.BaseAuthenticationToken;
 import org.codice.ddf.security.handler.GuestAuthenticationToken;
@@ -77,7 +75,7 @@ public class WebSSOFilterTest {
   }
 
   @Test
-  public void testDoFilterWhiteListed() throws IOException, AuthenticationException {
+  public void testDoFilterWhiteListed() throws IOException, ServletException {
     ContextPolicy testPolicy = mock(ContextPolicy.class);
     ContextPolicyManager policyManager = mock(ContextPolicyManager.class);
     when(policyManager.getContextPolicy(anyString())).thenReturn(testPolicy);
@@ -93,14 +91,14 @@ public class WebSSOFilterTest {
     when(completedResult.getStatus()).thenReturn(Status.COMPLETED);
     when(completedResult.getToken()).thenReturn(null);
     when(handler1.getNormalizedToken(
-            any(ServletRequest.class),
-            any(ServletResponse.class),
+            any(HttpServletRequest.class),
+            any(HttpServletResponse.class),
             any(SecurityFilterChain.class),
             eq(true)))
         .thenReturn(completedResult);
     when(handler1.getNormalizedToken(
-            any(ServletRequest.class),
-            any(ServletResponse.class),
+            any(HttpServletRequest.class),
+            any(HttpServletResponse.class),
             any(SecurityFilterChain.class),
             eq(false)))
         .thenReturn(noActionResult);
@@ -154,8 +152,8 @@ public class WebSSOFilterTest {
     when(completedResult.getStatus()).thenReturn(Status.COMPLETED);
     when(completedResult.getToken()).thenReturn(mock(BaseAuthenticationToken.class));
     when(handlerMock.getNormalizedToken(
-            any(ServletRequest.class),
-            any(ServletResponse.class),
+            any(HttpServletRequest.class),
+            any(HttpServletResponse.class),
             any(SecurityFilterChain.class),
             anyBoolean()))
         .thenReturn(completedResult);
@@ -204,8 +202,8 @@ public class WebSSOFilterTest {
     when(completedResult.getStatus()).thenReturn(Status.COMPLETED);
     when(completedResult.getToken()).thenReturn(mock(BaseAuthenticationToken.class));
     when(handlerMock.getNormalizedToken(
-            any(ServletRequest.class),
-            any(ServletResponse.class),
+            any(HttpServletRequest.class),
+            any(HttpServletResponse.class),
             any(SecurityFilterChain.class),
             anyBoolean()))
         .thenReturn(completedResult);
@@ -224,7 +222,7 @@ public class WebSSOFilterTest {
   }
 
   @Test
-  public void testDoFilterResolvingOnSecondCall() throws IOException, AuthenticationException {
+  public void testDoFilterResolvingOnSecondCall() throws IOException, ServletException {
     ContextPolicy testPolicy = mock(ContextPolicy.class);
     when(testPolicy.getAuthenticationMethods()).thenReturn(Collections.singletonList("basic"));
     ContextPolicyManager policyManager = mock(ContextPolicyManager.class);
@@ -242,14 +240,14 @@ public class WebSSOFilterTest {
     when(completedResult.getStatus()).thenReturn(Status.COMPLETED);
     when(completedResult.getToken()).thenReturn(null);
     when(handler1.getNormalizedToken(
-            any(ServletRequest.class),
-            any(ServletResponse.class),
+            any(HttpServletRequest.class),
+            any(HttpServletResponse.class),
             any(SecurityFilterChain.class),
             eq(true)))
         .thenReturn(completedResult);
     when(handler1.getNormalizedToken(
-            any(ServletRequest.class),
-            any(ServletResponse.class),
+            any(HttpServletRequest.class),
+            any(HttpServletResponse.class),
             any(SecurityFilterChain.class),
             eq(false)))
         .thenReturn(noActionResult);
@@ -265,7 +263,7 @@ public class WebSSOFilterTest {
 
     try {
       filter.doFilter(request, response, filterChain);
-    } catch (AuthenticationException e) {
+    } catch (ServletException e) {
 
     }
 
@@ -281,7 +279,7 @@ public class WebSSOFilterTest {
   }
 
   @Test
-  public void testDoFilterWithRedirected() throws AuthenticationException, IOException {
+  public void testDoFilterWithRedirected() throws ServletException, IOException {
     ContextPolicy testPolicy = mock(ContextPolicy.class);
     ContextPolicyManager policyManager = mock(ContextPolicyManager.class);
     when(policyManager.getContextPolicy(MOCK_CONTEXT)).thenReturn(testPolicy);
@@ -298,14 +296,14 @@ public class WebSSOFilterTest {
     when(redirectedResult.getStatus()).thenReturn(Status.REDIRECTED);
     when(redirectedResult.getToken()).thenReturn(null);
     when(handler1.getNormalizedToken(
-            any(ServletRequest.class),
-            any(ServletResponse.class),
+            any(HttpServletRequest.class),
+            any(HttpServletResponse.class),
             any(SecurityFilterChain.class),
             eq(false)))
         .thenReturn(noActionResult);
     when(handler1.getNormalizedToken(
-            any(ServletRequest.class),
-            any(ServletResponse.class),
+            any(HttpServletRequest.class),
+            any(HttpServletResponse.class),
             any(SecurityFilterChain.class),
             eq(true)))
         .thenReturn(redirectedResult);
@@ -320,7 +318,7 @@ public class WebSSOFilterTest {
 
     try {
       filter.doFilter(request, response, filterChain);
-    } catch (AuthenticationException e) {
+    } catch (ServletException e) {
 
     }
 
@@ -331,7 +329,7 @@ public class WebSSOFilterTest {
 
   @Test
   public void testDoFilterReturnsStatusCode503WhenNoHandlersRegisteredAndGuestAccessDisabled()
-      throws IOException, AuthenticationException {
+      throws IOException, ServletException {
     ContextPolicyManager policyManager = mock(ContextPolicyManager.class);
     when(policyManager.isWhiteListed(MOCK_CONTEXT)).thenReturn(false);
     when(policyManager.getGuestAccess()).thenReturn(false);
@@ -352,7 +350,7 @@ public class WebSSOFilterTest {
 
   @Test
   public void testDoFilterReturnsGuestTokenWhenNoHandlersRegisteredAndGuestAccessEnabled()
-      throws IOException, AuthenticationException {
+      throws IOException, ServletException {
     ContextPolicyManager policyManager = mock(ContextPolicyManager.class);
     when(policyManager.isWhiteListed(MOCK_CONTEXT)).thenReturn(false);
     when(policyManager.getGuestAccess()).thenReturn(true);

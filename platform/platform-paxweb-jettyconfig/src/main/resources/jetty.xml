@@ -71,14 +71,6 @@ DTD Configure//EN" "http://jetty.mortbay.org/configure_9_0.dtd">
             </Arg>
         </Call>
     </Get>
-    <Get name="handler">
-        <Call name="addHandler">
-            <Arg>
-                <New id="DDFSessionHandler"
-                  class="org.codice.ddf.pax.web.jetty.DDFSessionHandler"/>
-            </Arg>
-        </Call>
-    </Get>
     <Ref refid="RequestLog">
         <Set name="requestLog">
             <New id="RequestLogImpl" class="org.codice.ddf.pax.web.jetty.AccessRequestLog">

@@ -16,14 +16,12 @@ package org.codice.ddf.security.filter.authorization;
 import ddf.security.audit.SecurityLogger;
 import ddf.security.permission.CollectionPermission;
 import java.io.IOException;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
+import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.apache.shiro.SecurityUtils;
 import org.apache.shiro.subject.Subject;
 import org.codice.ddf.log.sanitizer.LogSanitizer;
-import org.codice.ddf.platform.filter.AuthenticationException;
 import org.codice.ddf.platform.filter.SecurityFilter;
 import org.codice.ddf.platform.filter.SecurityFilterChain;
 import org.codice.ddf.security.policy.context.ContextPolicy;
@@ -57,16 +55,15 @@ public class AuthorizationFilter implements SecurityFilter {
 
   @SuppressWarnings("PackageAccessibility")
   @Override
-  public void doFilter(ServletRequest request, ServletResponse response, SecurityFilterChain chain)
-      throws IOException, AuthenticationException {
-    HttpServletRequest httpRequest = (HttpServletRequest) request;
-    HttpServletResponse httpResponse = (HttpServletResponse) response;
+  public void doFilter(
+      HttpServletRequest httpRequest, HttpServletResponse httpResponse, SecurityFilterChain chain)
+      throws IOException, ServletException {
 
     Subject subject = null;
 
-    if (request.getAttribute(ContextPolicy.NO_AUTH_POLICY) != null) {
+    if (httpRequest.getAttribute(ContextPolicy.NO_AUTH_POLICY) != null) {
       LOGGER.debug("NO_AUTH_POLICY header was found, skipping authorization filter.");
-      chain.doFilter(request, response);
+      chain.doFilter(httpRequest, httpResponse);
     } else {
       try {
         subject = SecurityUtils.getSubject();
@@ -102,7 +99,7 @@ public class AuthorizationFilter implements SecurityFilter {
           securityLogger.audit("Subject is authorized to view resource {}", path);
         }
         LOGGER.debug("Subject is authorized!");
-        chain.doFilter(request, response);
+        chain.doFilter(httpRequest, httpResponse);
       }
     }
   }

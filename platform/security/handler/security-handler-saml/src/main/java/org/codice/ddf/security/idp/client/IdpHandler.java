@@ -44,6 +44,7 @@ import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.http.Cookie;
@@ -65,7 +66,6 @@ import org.apache.wss4j.common.saml.builder.SAML2Constants;
 import org.apache.wss4j.common.util.DOM2Writer;
 import org.codice.ddf.configuration.SystemBaseUrl;
 import org.codice.ddf.log.sanitizer.LogSanitizer;
-import org.codice.ddf.platform.filter.AuthenticationFailureException;
 import org.codice.ddf.platform.filter.SecurityFilterChain;
 import org.codice.ddf.platform.util.HttpUtils;
 import org.codice.ddf.security.handler.HandlerResultImpl;
@@ -233,12 +233,15 @@ public class IdpHandler implements AuthenticationHandler {
    * @param resolve flag with true implying that credentials should be obtained, false implying
    *     return if no credentials are found.
    * @return result of handling this request - status and optional tokens
-   * @throws AuthenticationFailureException
+   * @throws ServletException
    */
   @Override
   public HandlerResult getNormalizedToken(
-      ServletRequest request, ServletResponse response, SecurityFilterChain chain, boolean resolve)
-      throws AuthenticationFailureException {
+      HttpServletRequest request,
+      HttpServletResponse response,
+      SecurityFilterChain chain,
+      boolean resolve)
+      throws ServletException {
 
     HttpServletRequest httpRequest = (HttpServletRequest) request;
     if (httpRequest.getMethod().equals("HEAD")) {
@@ -246,8 +249,7 @@ public class IdpHandler implements AuthenticationHandler {
       try {
         response.flushBuffer();
       } catch (IOException e) {
-        throw new AuthenticationFailureException(
-            "Unable to send response to HEAD message from IdP client.");
+        throw new ServletException("Unable to send response to HEAD message from IdP client.", e);
       }
       return new HandlerResultImpl(HandlerResult.Status.NO_ACTION, null);
     }
@@ -412,7 +414,7 @@ public class IdpHandler implements AuthenticationHandler {
     try {
       IDPSSODescriptor idpssoDescriptor = idpMetadata.getDescriptor();
       if (idpssoDescriptor == null) {
-        throw new AuthenticationFailureException(IDP_METADATA_MISSING);
+        throw new ServletException(IDP_METADATA_MISSING);
       }
       authnRequest =
           createAndSignAuthnRequest(
@@ -420,7 +422,7 @@ public class IdpHandler implements AuthenticationHandler {
       paosRequest = createPaosRequest((HttpServletRequest) request);
       ecpRequest = createEcpRequest();
       ecpRelayState = createEcpRelayState((HttpServletRequest) request);
-    } catch (WSSecurityException | AuthenticationFailureException e) {
+    } catch (WSSecurityException | ServletException e) {
       LOGGER.debug("Unable to create and sign AuthnRequest.", e);
       httpServletResponse.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
       try {
@@ -506,7 +508,7 @@ public class IdpHandler implements AuthenticationHandler {
   }
 
   private void doHttpRedirectBinding(HttpServletRequest request, HttpServletResponse response)
-      throws AuthenticationFailureException {
+      throws ServletException {
 
     String redirectUrl;
     String idpRequest = null;
@@ -514,7 +516,7 @@ public class IdpHandler implements AuthenticationHandler {
     try {
       IDPSSODescriptor idpssoDescriptor = idpMetadata.getDescriptor();
       if (idpssoDescriptor == null) {
-        throw new AuthenticationFailureException(IDP_METADATA_MISSING);
+        throw new ServletException(IDP_METADATA_MISSING);
       }
       StringBuilder queryParams =
           new StringBuilder("SAMLRequest=")
@@ -534,14 +536,14 @@ public class IdpHandler implements AuthenticationHandler {
       redirectUrl = idpUri.build().toString();
     } catch (UnsupportedEncodingException e) {
       LOGGER.info("Unable to encode relay state: {}", relayState, e);
-      throw new AuthenticationFailureException("Unable to create return location");
+      throw new ServletException("Unable to create return location");
     } catch (SignatureException e) {
       String msg = "Unable to sign request";
       LOGGER.info(msg, e);
-      throw new AuthenticationFailureException(msg);
+      throw new ServletException(msg);
     } catch (URISyntaxException e) {
       LOGGER.info("Unable to parse IDP request location: {}", idpRequest, e);
-      throw new AuthenticationFailureException("Unable to determine IDP location.");
+      throw new ServletException("Unable to determine IDP location.");
     }
 
     try {
@@ -549,16 +551,16 @@ public class IdpHandler implements AuthenticationHandler {
       response.flushBuffer();
     } catch (IOException e) {
       LOGGER.info("Unable to redirect AuthnRequest to {}", redirectUrl, e);
-      throw new AuthenticationFailureException("Unable to redirect to IdP");
+      throw new ServletException("Unable to redirect to IdP");
     }
   }
 
   private void doHttpPostBinding(HttpServletRequest request, HttpServletResponse response)
-      throws AuthenticationFailureException {
+      throws ServletException {
     try {
       IDPSSODescriptor idpssoDescriptor = idpMetadata.getDescriptor();
       if (idpssoDescriptor == null) {
-        throw new AuthenticationFailureException(IDP_METADATA_MISSING);
+        throw new ServletException(IDP_METADATA_MISSING);
       }
       response
           .getWriter()
@@ -573,12 +575,12 @@ public class IdpHandler implements AuthenticationHandler {
       response.flushBuffer();
     } catch (IOException e) {
       LOGGER.info("Unable to post AuthnRequest to IdP", e);
-      throw new AuthenticationFailureException("Unable to post to IdP");
+      throw new ServletException("Unable to post to IdP");
     }
   }
 
   private String createAndSignAuthnRequest(boolean isPost, boolean wantSigned)
-      throws AuthenticationFailureException {
+      throws ServletException {
 
     String spIssuerId = getSpIssuerId();
     String spAssertionConsumerServiceUrl = getSpAssertionConsumerServiceUrl(spIssuerId);
@@ -628,7 +630,7 @@ public class IdpHandler implements AuthenticationHandler {
   }
 
   private String serializeAndSign(boolean isPost, boolean wantSigned, AuthnRequest authnRequest)
-      throws AuthenticationFailureException {
+      throws ServletException {
     try {
       if (isPost && wantSigned) {
         simpleSign.signSamlObject(authnRequest);
@@ -646,15 +648,14 @@ public class IdpHandler implements AuthenticationHandler {
       return requestMessage;
     } catch (WSSecurityException e) {
       LOGGER.info(UNABLE_TO_ENCODE_SAML_AUTHN_REQUEST, e);
-      throw new AuthenticationFailureException(UNABLE_TO_ENCODE_SAML_AUTHN_REQUEST);
+      throw new ServletException(UNABLE_TO_ENCODE_SAML_AUTHN_REQUEST);
     } catch (SignatureException e) {
       LOGGER.info(UNABLE_TO_SIGN_SAML_AUTHN_REQUEST, e);
-      throw new AuthenticationFailureException(UNABLE_TO_SIGN_SAML_AUTHN_REQUEST);
+      throw new ServletException(UNABLE_TO_SIGN_SAML_AUTHN_REQUEST);
     }
   }
 
-  private String encodeAuthnRequest(String requestMessage, boolean isPost)
-      throws AuthenticationFailureException {
+  private String encodeAuthnRequest(String requestMessage, boolean isPost) throws ServletException {
     try {
       if (isPost) {
         return encodePostRequest(requestMessage);
@@ -663,7 +664,7 @@ public class IdpHandler implements AuthenticationHandler {
       }
     } catch (IOException e) {
       LOGGER.info(UNABLE_TO_ENCODE_SAML_AUTHN_REQUEST, e);
-      throw new AuthenticationFailureException(UNABLE_TO_ENCODE_SAML_AUTHN_REQUEST);
+      throw new ServletException(UNABLE_TO_ENCODE_SAML_AUTHN_REQUEST);
     }
   }
 
@@ -707,8 +708,9 @@ public class IdpHandler implements AuthenticationHandler {
 
   @Override
   public HandlerResult handleError(
-      ServletRequest servletRequest, ServletResponse servletResponse, SecurityFilterChain chain)
-      throws AuthenticationFailureException {
+      HttpServletRequest servletRequest,
+      HttpServletResponse servletResponse,
+      SecurityFilterChain chain) {
     HandlerResult result = new HandlerResultImpl(HandlerResult.Status.NO_ACTION, null);
     result.setSource(SOURCE);
     LOGGER.debug("In error handler for idp - no action taken.");

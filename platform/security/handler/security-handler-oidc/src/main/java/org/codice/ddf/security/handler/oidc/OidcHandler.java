@@ -16,11 +16,9 @@ package org.codice.ddf.security.handler.oidc;
 import java.io.IOException;
 import java.util.Map;
 import java.util.Optional;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
+import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import org.codice.ddf.platform.filter.AuthenticationFailureException;
 import org.codice.ddf.platform.filter.SecurityFilterChain;
 import org.codice.ddf.security.handler.HandlerResultImpl;
 import org.codice.ddf.security.handler.OidcAuthenticationToken;
@@ -74,22 +72,23 @@ public class OidcHandler implements AuthenticationHandler {
   /**
    * Handler implementing OIDC authentication.
    *
-   * @param request http request to obtain attributes from and to pass into any local filter chains
-   *     required
-   * @param response http response to return http responses or redirects
+   * @param httpRequest http request to obtain attributes from and to pass into any local filter
+   *     chains required
+   * @param httpResponse http response to return http responses or redirects
    * @param chain original filter chain (should not be called from your handler)
    * @param resolve flag with true implying that credentials should be obtained, false implying
    *     return if no credentials are found.
    * @return result of handling this request - status and optional tokens
-   * @throws AuthenticationFailureException
+   * @throws ServletException
    */
   @Override
   public HandlerResult getNormalizedToken(
-      ServletRequest request, ServletResponse response, SecurityFilterChain chain, boolean resolve)
-      throws AuthenticationFailureException {
+      HttpServletRequest httpRequest,
+      HttpServletResponse httpResponse,
+      SecurityFilterChain chain,
+      boolean resolve)
+      throws ServletException {
 
-    HttpServletRequest httpRequest = (HttpServletRequest) request;
-    HttpServletResponse httpResponse = (HttpServletResponse) response;
     if (httpRequest.getMethod().equals("HEAD")) {
       return processHeadRequest(httpResponse);
     }
@@ -151,7 +150,9 @@ public class OidcHandler implements AuthenticationHandler {
 
   @Override
   public HandlerResult handleError(
-      ServletRequest servletRequest, ServletResponse servletResponse, SecurityFilterChain chain) {
+      HttpServletRequest servletRequest,
+      HttpServletResponse servletResponse,
+      SecurityFilterChain chain) {
     LOGGER.debug("In error handler for Oidc - no action taken.");
     return noActionResult;
   }
@@ -161,13 +162,12 @@ public class OidcHandler implements AuthenticationHandler {
   }
 
   private HandlerResult processHeadRequest(HttpServletResponse httpResponse)
-      throws AuthenticationFailureException {
+      throws ServletException {
     httpResponse.setStatus(HttpServletResponse.SC_OK);
     try {
       httpResponse.flushBuffer();
     } catch (IOException e) {
-      throw new AuthenticationFailureException(
-          "Unable to send response to HEAD message from OIDC client.");
+      throw new ServletException("Unable to send response to HEAD message from OIDC client.", e);
     }
     return noActionResult;
   }

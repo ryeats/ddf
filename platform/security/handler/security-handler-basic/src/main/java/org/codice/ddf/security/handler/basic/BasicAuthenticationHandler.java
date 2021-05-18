@@ -16,8 +16,6 @@ package org.codice.ddf.security.handler.basic;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.core.HttpHeaders;
@@ -58,9 +56,9 @@ public class BasicAuthenticationHandler implements AuthenticationHandler {
    * the client that authentication is needed if they are not present in the request. Returns the
    * {@link org.codice.ddf.security.handler.api.HandlerResult} for the HTTP Request.
    *
-   * @param request http request to obtain attributes from and to pass into any local filter chains
-   *     required
-   * @param response http response to return http responses or redirects
+   * @param httpRequest http request to obtain attributes from and to pass into any local filter
+   *     chains required
+   * @param httpResponse http response to return http responses or redirects
    * @param chain original filter chain (should not be called from your handler)
    * @param resolve flag with true implying that credentials should be obtained, false implying
    *     return if no credentials are found.
@@ -68,15 +66,14 @@ public class BasicAuthenticationHandler implements AuthenticationHandler {
    */
   @Override
   public HandlerResult getNormalizedToken(
-      ServletRequest request,
-      ServletResponse response,
+      HttpServletRequest httpRequest,
+      HttpServletResponse httpResponse,
       SecurityFilterChain chain,
       boolean resolve) {
 
     HandlerResult handlerResult = new HandlerResultImpl(HandlerResult.Status.NO_ACTION, null);
     handlerResult.setSource(SOURCE);
 
-    HttpServletRequest httpRequest = (HttpServletRequest) request;
     String path = httpRequest.getServletPath();
     LOGGER.debug("Handling request for path {}", path);
 
@@ -92,15 +89,17 @@ public class BasicAuthenticationHandler implements AuthenticationHandler {
     }
 
     // prompt for credentials since we didn't find any
-    doAuthPrompt((HttpServletResponse) response);
+    doAuthPrompt(httpResponse);
     handlerResult.setStatus(HandlerResult.Status.REDIRECTED);
     return handlerResult;
   }
 
   @Override
   public HandlerResult handleError(
-      ServletRequest servletRequest, ServletResponse servletResponse, SecurityFilterChain chain) {
-    doAuthPrompt((HttpServletResponse) servletResponse);
+      HttpServletRequest servletRequest,
+      HttpServletResponse servletResponse,
+      SecurityFilterChain chain) {
+    doAuthPrompt(servletResponse);
     HandlerResult result = new HandlerResultImpl(HandlerResult.Status.REDIRECTED, null);
     result.setSource(SOURCE);
     LOGGER.debug("In error handler for basic auth - prompted for auth credentials.");

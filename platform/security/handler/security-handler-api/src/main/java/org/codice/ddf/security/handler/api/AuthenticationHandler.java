@@ -13,9 +13,9 @@
  */
 package org.codice.ddf.security.handler.api;
 
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
-import org.codice.ddf.platform.filter.AuthenticationException;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import org.codice.ddf.platform.filter.SecurityFilterChain;
 
 public interface AuthenticationHandler {
@@ -47,8 +47,11 @@ public interface AuthenticationHandler {
    * @return result containing a status and the credentials to be placed into the http request
    */
   HandlerResult getNormalizedToken(
-      ServletRequest request, ServletResponse response, SecurityFilterChain chain, boolean resolve)
-      throws AuthenticationException;
+      HttpServletRequest request,
+      HttpServletResponse response,
+      SecurityFilterChain chain,
+      boolean resolve)
+      throws ServletException;
 
   /**
    * Called when downstream authentication fails. Should attempt to re-acquire credentials if
@@ -58,6 +61,8 @@ public interface AuthenticationHandler {
    * @return result containing a status indicating if further action is necessary
    */
   HandlerResult handleError(
-      ServletRequest servletRequest, ServletResponse servletResponse, SecurityFilterChain chain)
-      throws AuthenticationException;
+      HttpServletRequest servletRequest,
+      HttpServletResponse servletResponse,
+      SecurityFilterChain chain)
+      throws ServletException;
 }

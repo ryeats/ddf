@@ -26,15 +26,11 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
+import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import org.apache.shiro.session.SessionException;
-import org.codice.ddf.platform.filter.AuthenticationChallengeException;
-import org.codice.ddf.platform.filter.AuthenticationException;
-import org.codice.ddf.platform.filter.AuthenticationFailureException;
 import org.codice.ddf.platform.filter.SecurityFilter;
 import org.codice.ddf.platform.filter.SecurityFilterChain;
 import org.codice.ddf.security.handler.BaseAuthenticationToken;
@@ -58,7 +54,7 @@ import org.slf4j.LoggerFactory;
 public class WebSSOFilter implements SecurityFilter {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(WebSSOFilter.class);
-
+  private static final String AUTH_FAILED_MSG = "Authentication failed. Error message: '{}'";
   /** Dynamic list of handlers that are registered to provide authentication services. */
   private List<AuthenticationHandler> handlerList = new ArrayList<>();
 
@@ -89,21 +85,18 @@ public class WebSSOFilter implements SecurityFilter {
    * they exist or to go off and obtain them. Once a token has been received that we know how to
    * process , we attach them to the request and continue down the chain.
    *
-   * @param servletRequest incoming http request
-   * @param servletResponse response stream for returning the response
+   * @param httpRequest incoming http request
+   * @param httpResponse response stream for returning the response
    * @param filterChain chain of filters to be invoked following this filter
    * @throws IOException
-   * @throws AuthenticationException
    */
   @Override
   public void doFilter(
-      ServletRequest servletRequest,
-      ServletResponse servletResponse,
+      HttpServletRequest httpRequest,
+      HttpServletResponse httpResponse,
       SecurityFilterChain filterChain)
-      throws IOException, AuthenticationException {
+      throws IOException, ServletException {
     LOGGER.debug("Performing doFilter() on WebSSOFilter");
-    HttpServletRequest httpRequest = (HttpServletRequest) servletRequest;
-    HttpServletResponse httpResponse = (HttpServletResponse) servletResponse;
 
     final String path = httpRequest.getRequestURI();
 
@@ -119,23 +112,16 @@ public class WebSSOFilter implements SecurityFilter {
       LOGGER.debug(
           "Context of {} has been whitelisted, adding a NO_AUTH_POLICY attribute to the header.",
           path);
-      servletRequest.setAttribute(ContextPolicy.NO_AUTH_POLICY, true);
+      httpRequest.setAttribute(ContextPolicy.NO_AUTH_POLICY, true);
       filterChain.doFilter(httpRequest, httpResponse);
     } else {
       // make sure request didn't come in with NO_AUTH_POLICY set
-      servletRequest.setAttribute(ContextPolicy.NO_AUTH_POLICY, null);
+      httpRequest.setAttribute(ContextPolicy.NO_AUTH_POLICY, null);
 
       // now handle the request and set the authentication token
       LOGGER.debug("Handling request for {}.", path);
 
-      try {
-        handleRequest(httpRequest, httpResponse, filterChain, getHandlerList(path));
-      } catch (AuthenticationFailureException e) {
-        String message =
-            (e.getRootCause() != null) ? e.getRootCause().getMessage() : e.getMessage();
-        securityLogger.audit("Authentication failed. Error message: '{}'", message);
-        throw e;
-      }
+      handleRequest(httpRequest, httpResponse, filterChain, getHandlerList(path));
     }
   }
 
@@ -144,7 +130,7 @@ public class WebSSOFilter implements SecurityFilter {
       HttpServletResponse httpResponse,
       SecurityFilterChain filterChain,
       List<AuthenticationHandler> handlers)
-      throws AuthenticationException, IOException {
+      throws IOException, ServletException {
     HandlerResult result = null;
 
     // First pass, see if anyone can come up with proper security token from the get-go
@@ -180,7 +166,9 @@ public class WebSSOFilter implements SecurityFilter {
       }
     }
 
-    handleResultStatus(httpRequest, httpResponse, result, path, ipAddress);
+    if (!handleResultStatus(httpRequest, httpResponse, result, path, ipAddress)) {
+      return;
+    }
 
     // If we got here, we've received our tokens to continue
     LOGGER.debug("Invoking the rest of the filter chain");
@@ -208,8 +196,8 @@ public class WebSSOFilter implements SecurityFilter {
         httpResponse.sendError(HttpServletResponse.SC_BAD_REQUEST);
         httpResponse.flushBuffer();
       }
-
-      throw new AuthenticationFailureException(e);
+      securityLogger.audit(AUTH_FAILED_MSG, e.getMessage());
+      return;
     }
   }
 
@@ -260,20 +248,20 @@ public class WebSSOFilter implements SecurityFilter {
     return result;
   }
 
-  private void handleResultStatus(
+  private boolean handleResultStatus(
       HttpServletRequest httpRequest,
       HttpServletResponse httpResponse,
       HandlerResult result,
       String path,
-      String ipAddress)
-      throws AuthenticationChallengeException, AuthenticationFailureException {
+      String ipAddress) {
     if (result != null) {
       switch (result.getStatus()) {
         case REDIRECTED:
           // handler handled the response - it is redirecting or whatever
           // necessary to get their tokens
           LOGGER.debug("Stopping filter chain - handled by plugins");
-          throw new AuthenticationChallengeException("Stopping filter chain - handled by plugins");
+          securityLogger.audit(AUTH_FAILED_MSG, "Stopping filter chain - handled by plugins");
+          return false;
         case NO_ACTION:
           if (!contextPolicyManager.getGuestAccess()) {
             LOGGER.warn(
@@ -281,8 +269,9 @@ public class WebSSOFilter implements SecurityFilter {
                 ipAddress,
                 path);
             returnSimpleResponse(HttpServletResponse.SC_BAD_REQUEST, httpResponse);
-            throw new AuthenticationFailureException(
-                "No handlers were able to determine required credentials");
+            securityLogger.audit(
+                AUTH_FAILED_MSG, "No handlers were able to determine required credentials");
+            return false;
           }
           result =
               new HandlerResultImpl(
@@ -296,7 +285,8 @@ public class WebSSOFilter implements SecurityFilter {
                 ipAddress,
                 path);
             returnSimpleResponse(HttpServletResponse.SC_BAD_REQUEST, httpResponse);
-            throw new AuthenticationFailureException("Completed without credentials");
+            securityLogger.audit(AUTH_FAILED_MSG, "Completed without credentials");
+            return false;
           }
           if (LOGGER.isDebugEnabled()) {
             LOGGER.debug(
@@ -309,13 +299,14 @@ public class WebSSOFilter implements SecurityFilter {
                 .setAllowGuest(contextPolicyManager.getGuestAccess());
           }
           httpRequest.setAttribute(AUTHENTICATION_TOKEN_KEY, result);
-          break;
+          return true;
         default:
           LOGGER.warn(
               "Unexpected response from handler - ignoring. Remote IP: {}, Path: {}",
               ipAddress,
               path);
-          throw new AuthenticationFailureException("Unexpected response from handler");
+          securityLogger.audit(AUTH_FAILED_MSG, "Unexpected response from handler");
+          return false;
       }
     } else {
       LOGGER.warn(
@@ -323,7 +314,8 @@ public class WebSSOFilter implements SecurityFilter {
           ipAddress,
           path);
       returnSimpleResponse(HttpServletResponse.SC_BAD_REQUEST, httpResponse);
-      throw new AuthenticationFailureException("Didn't find any login credentials");
+      securityLogger.audit(AUTH_FAILED_MSG, "Didn't find any login credentials");
+      return false;
     }
   }
 
@@ -332,7 +324,7 @@ public class WebSSOFilter implements SecurityFilter {
       HttpServletResponse httpResponse,
       SecurityFilterChain filterChain,
       List<AuthenticationHandler> handlers)
-      throws AuthenticationException {
+      throws ServletException {
     HandlerResult result = new HandlerResultImpl();
     for (AuthenticationHandler auth : handlers) {
       result = auth.getNormalizedToken(httpRequest, httpResponse, filterChain, false);

@@ -30,10 +30,10 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.apache.shiro.util.ThreadContext;
-import org.codice.ddf.platform.filter.AuthenticationException;
 import org.codice.ddf.platform.filter.SecurityFilterChain;
 import org.codice.ddf.security.policy.context.ContextPolicy;
 import org.codice.ddf.security.policy.context.ContextPolicyManager;
@@ -71,7 +71,7 @@ public class AuthorizationFilterTest {
       if (!sucess) {
         fail("Should have called doFilter with a valid Subject");
       }
-    } catch (IOException | AuthenticationException e) {
+    } catch (IOException | ServletException e) {
       fail(e.getMessage());
     }
     ThreadContext.unbindSubject();
@@ -95,7 +95,7 @@ public class AuthorizationFilterTest {
 
     try {
       loginFilter.doFilter(servletRequest, servletResponse, filterChain);
-    } catch (IOException | AuthenticationException e) {
+    } catch (IOException | ServletException e) {
       fail(e.getMessage());
     }
     ThreadContext.unbindSubject();
@@ -116,7 +116,7 @@ public class AuthorizationFilterTest {
 
     try {
       loginFilter.doFilter(servletRequest, servletResponse, filterChain);
-    } catch (IOException | AuthenticationException e) {
+    } catch (IOException | ServletException e) {
       fail(e.getMessage());
     }
   }
@@ -136,7 +136,7 @@ public class AuthorizationFilterTest {
 
     try {
       loginFilter.doFilter(servletRequest, servletResponse, filterChain);
-    } catch (IOException | AuthenticationException e) {
+    } catch (IOException | ServletException e) {
       fail(e.getMessage());
     }
   }

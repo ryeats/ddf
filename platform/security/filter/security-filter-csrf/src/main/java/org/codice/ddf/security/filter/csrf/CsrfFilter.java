@@ -24,8 +24,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.regex.Pattern;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
+import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.core.HttpHeaders;
@@ -33,8 +32,6 @@ import javax.ws.rs.core.MultivaluedHashMap;
 import javax.ws.rs.core.MultivaluedMap;
 import org.apache.commons.lang.StringUtils;
 import org.codice.ddf.configuration.SystemBaseUrl;
-import org.codice.ddf.platform.filter.AuthenticationException;
-import org.codice.ddf.platform.filter.AuthenticationFailureException;
 import org.codice.ddf.platform.filter.SecurityFilter;
 import org.codice.ddf.platform.filter.SecurityFilterChain;
 import org.eclipse.jetty.http.HttpMethod;
@@ -154,20 +151,18 @@ public class CsrfFilter implements SecurityFilter {
    * Neither the Origin nor Referer header match a trusted authority. - The "X-Requested-With"
    * header is not present on the request.
    *
-   * @param request incoming http request
-   * @param response response stream for returning the response
+   * @param httpRequest incoming http request
+   * @param httpResponse response stream for returning the response
    * @param chain chain of filters to be invoked following this filter
    * @throws IOException
-   * @throws AuthenticationException
    */
   @Override
-  public void doFilter(ServletRequest request, ServletResponse response, SecurityFilterChain chain)
-      throws IOException, AuthenticationException {
+  public void doFilter(
+      HttpServletRequest httpRequest, HttpServletResponse httpResponse, SecurityFilterChain chain)
+      throws IOException, ServletException {
 
     if (shouldFilter) {
       LOGGER.debug("Performing doFilter() on CsrfFilter");
-      HttpServletRequest httpRequest = (HttpServletRequest) request;
-      HttpServletResponse httpResponse = (HttpServletResponse) response;
       String targetContextPath = httpRequest.getRequestURI();
       String requestMethod = httpRequest.getMethod();
       String userAgentHeader = httpRequest.getHeader(HttpHeaders.USER_AGENT);
@@ -176,19 +171,19 @@ public class CsrfFilter implements SecurityFilter {
       if (protectedContexts.stream().anyMatch(targetContextPath::startsWith)
           && doBrowserProtectionFilter(
               httpRequest, httpResponse, targetContextPath, requestMethod)) {
-        throw new AuthenticationFailureException();
+        return;
       }
 
       // Execute CSRF check if user is accessing /services
       if (targetContextPath.startsWith(SERVICE_CONTEXT)
           && doSystemProtectionFilter(
               httpRequest, httpResponse, targetContextPath, requestMethod, userAgentHeader)) {
-        throw new AuthenticationFailureException();
+        return;
       }
     }
 
     // All checks passed
-    chain.doFilter(request, response);
+    chain.doFilter(httpRequest, httpResponse);
   }
 
   /**

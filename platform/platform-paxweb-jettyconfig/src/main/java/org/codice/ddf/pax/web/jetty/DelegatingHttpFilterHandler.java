@@ -16,22 +16,19 @@ package org.codice.ddf.pax.web.jetty;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Objects;
+import java.util.TreeSet;
+import java.util.concurrent.CopyOnWriteArraySet;
+import javax.annotation.Nonnull;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang.StringUtils;
+import org.codice.ddf.platform.filter.SecurityFilter;
 import org.codice.ddf.platform.filter.http.HttpFilter;
 import org.codice.ddf.platform.util.SortedServiceList;
-import org.eclipse.jetty.security.Authenticator;
-import org.eclipse.jetty.security.ServerAuthException;
-import org.eclipse.jetty.security.authentication.DeferredAuthentication;
-import org.eclipse.jetty.server.Authentication;
-import org.eclipse.jetty.server.Authentication.Deferred;
-import org.eclipse.jetty.server.Authentication.ResponseSent;
-import org.eclipse.jetty.server.Authentication.User;
-import org.eclipse.jetty.server.Authentication.Wrapped;
 import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.Request;
-import org.eclipse.jetty.server.UserIdentity;
 import org.eclipse.jetty.server.handler.HandlerWrapper;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
@@ -65,9 +62,9 @@ public class DelegatingHttpFilterHandler extends HandlerWrapper {
 
   private final SortedServiceList<HttpFilter> httpFilters;
 
-  private final JettyAuthenticator jettyAuthenticator = new JettyAuthenticator();
-
   private final BundleContext context;
+
+  private CopyOnWriteArraySet<String> keysOfInitializedSecurityFilters;
 
   private static BundleContext getContext() {
     Bundle bundle = FrameworkUtil.getBundle(DelegatingHttpFilterHandler.class);
@@ -81,6 +78,7 @@ public class DelegatingHttpFilterHandler extends HandlerWrapper {
 
   public DelegatingHttpFilterHandler(BundleContext context) throws InvalidSyntaxException {
     Objects.requireNonNull(context, "Bundle context cannot be null");
+    keysOfInitializedSecurityFilters = new CopyOnWriteArraySet<>();
     this.context = context;
     this.context.addServiceListener(listener, FILTER);
     this.httpFilters =
@@ -110,109 +108,139 @@ public class DelegatingHttpFilterHandler extends HandlerWrapper {
 
     Handler handler = this.getHandler();
     if (handler != null) {
-      Authenticator authenticator = this.jettyAuthenticator;
       if (!this.checkSecurity(baseRequest)) {
         handler.handle(target, baseRequest, request, response);
       } else {
-        if (authenticator != null) {
-          authenticator.prepareRequest(baseRequest);
+
+        TreeSet<ServiceReference<SecurityFilter>> sortedSecurityFilterServiceReferences = null;
+
+        if (context == null) {
+          LOGGER.debug(
+              "Unable to get BundleContext. No servlet SecurityFilters can be applied. Blocking the request processing.");
+          return;
         }
-        boolean isAuthMandatory = false;
-        Object previousIdentity = null;
 
         try {
           try {
-            Authentication authentication = baseRequest.getAuthentication();
-            if (authentication == null || authentication == Authentication.NOT_CHECKED) {
-              authentication =
-                  authenticator == null
-                      ? Authentication.UNAUTHENTICATED
-                      : authenticator.validateRequest(request, response, isAuthMandatory);
-            }
+            sortedSecurityFilterServiceReferences =
+                new TreeSet<>(context.getServiceReferences(SecurityFilter.class, null));
+          } catch (InvalidSyntaxException ise) {
+            LOGGER.debug("Should never get this exception as there is no filter being passed.");
+          }
+          final SecurityFilterChain chain = new SecurityFilterChain();
+          chain.addSecurityFilter(new ProxyFilters(target, baseRequest));
+          if (!CollectionUtils.isEmpty(sortedSecurityFilterServiceReferences)) {
+            LOGGER.debug(
+                "Found {} filter(s), now filtering...",
+                sortedSecurityFilterServiceReferences.size());
 
-            if (authentication instanceof Wrapped) {
-              request = ((Wrapped) authentication).getHttpServletRequest();
-              response = ((Wrapped) authentication).getHttpServletResponse();
-            }
+            // Insert the SecurityFilters into the chain one at a time (from lowest service ranking
+            // to highest service ranking). The SecurityFilter with the highest service-ranking will
+            // end up at index 0 in the FilterChain, which means that the SecurityFilters will be
+            // run in order of highest to lowest service ranking.
+            for (ServiceReference<SecurityFilter> securityFilterServiceReference :
+                sortedSecurityFilterServiceReferences) {
+              final SecurityFilter securityFilter =
+                  context.getService(securityFilterServiceReference);
 
-            if (authentication instanceof ResponseSent) {
-              baseRequest.setHandled(true);
-              return;
-            }
-
-            if (!(authentication instanceof User)) {
-              if (authentication instanceof Deferred) {
-                DeferredAuthentication deferred = (DeferredAuthentication) authentication;
-                baseRequest.setAuthentication(authentication);
-
-                try {
-                  handler.handle(target, baseRequest, request, response);
-                } finally {
-                  previousIdentity = deferred.getPreviousAssociation();
-                }
-
-                if (authenticator != null) {
-                  Authentication auth = baseRequest.getAuthentication();
-                  if (auth instanceof User) {
-                    User userAuth = (User) auth;
-                    authenticator.secureResponse(request, response, isAuthMandatory, userAuth);
-                  } else {
-                    authenticator.secureResponse(request, response, isAuthMandatory, (User) null);
-                  }
-
-                  return;
-                }
-              } else {
-                baseRequest.setAuthentication(authentication);
-                if (this.jettyAuthenticator.getLoginService().getIdentityService() != null) {
-                  previousIdentity =
-                      this.jettyAuthenticator
-                          .getLoginService()
-                          .getIdentityService()
-                          .associate((UserIdentity) null);
-                }
-
-                handler.handle(target, baseRequest, request, response);
-                if (authenticator != null) {
-                  authenticator.secureResponse(request, response, isAuthMandatory, (User) null);
-                  return;
-                }
+              if (!hasBeenInitialized(securityFilterServiceReference, context)) {
+                initializeSecurityFilter(context, securityFilterServiceReference, securityFilter);
               }
-
-              return;
+              chain.addSecurityFilter(securityFilter);
             }
-
-            User userAuth = (User) authentication;
-            baseRequest.setAuthentication(authentication);
-            if (this.jettyAuthenticator != null) {
-              previousIdentity =
-                  this.jettyAuthenticator
-                      .getLoginService()
-                      .getIdentityService()
-                      .associate(userAuth.getUserIdentity());
-            }
-            ProxyHttpFilterChain filterChain =
-                new ProxyHttpFilterChain(httpFilters, getHandler(), target, baseRequest);
-            filterChain.doFilter(request, response);
-            // handler.handle is called above.
-            //            handler.handle(target, baseRequest, request, response);
-            if (authenticator != null) {
-              authenticator.secureResponse(request, response, isAuthMandatory, userAuth);
-              return;
-            }
-          } catch (ServerAuthException var23) {
-            response.sendError(500, var23.getMessage());
           }
-
-        } finally {
-          if (this.jettyAuthenticator.getLoginService().getIdentityService() != null) {
-            this.jettyAuthenticator
-                .getLoginService()
-                .getIdentityService()
-                .disassociate(previousIdentity);
-          }
+          chain.doFilter(request, response);
+        } catch (Exception e) {
+          response.sendError(500, e.getMessage());
         }
       }
+    }
+  }
+
+  private class ProxyFilters implements SecurityFilter {
+
+    private final String target;
+    private final Request baseRequest;
+
+    public ProxyFilters(String target, Request baseRequest) {
+      this.target = target;
+      this.baseRequest = baseRequest;
+    }
+
+    @Override
+    public void init() {}
+
+    @Override
+    public void doFilter(
+        HttpServletRequest request,
+        HttpServletResponse response,
+        org.codice.ddf.platform.filter.SecurityFilterChain var3)
+        throws IOException, ServletException {
+      ProxyHttpFilterChain filterChain =
+          new ProxyHttpFilterChain(httpFilters, getHandler(), target, baseRequest);
+      filterChain.doFilter(request, response);
+    }
+
+    @Override
+    public void destroy() {}
+  }
+
+  /**
+   * This logic to get the filter name from a {@link ServiceReference<Filter>} is copied from {@link
+   * org.ops4j.pax.web.extender.whiteboard.internal.tracker.ServletTracker#createWebElement(ServiceReference,
+   * javax.servlet.Servlet)}. See the pax-web Whiteboard documentation and {@link
+   * org.osgi.service.http.whiteboard.HttpWhiteboardConstants#HTTP_WHITEBOARD_FILTER_NAME} for how
+   * to configure {@link Filter} services with a filter name.
+   */
+  @Nonnull
+  private static String getFilterName(
+      ServiceReference<SecurityFilter> securityFilterServiceReference,
+      BundleContext bundleContext) {
+    final String HTTP_WHITEBOARD_FILTER_NAME = "osgi.http.whiteboard.filter.name";
+    final String filterNameFromTheServiceProperty =
+        getStringProperty(securityFilterServiceReference, HTTP_WHITEBOARD_FILTER_NAME);
+    // If this service property is not specified, the fully qualified name of the service object's
+    // class is used as the servlet filter name.
+    if (StringUtils.isBlank(filterNameFromTheServiceProperty)) {
+      return bundleContext.getService(securityFilterServiceReference).getClass().getCanonicalName();
+    } else {
+      return filterNameFromTheServiceProperty;
+    }
+  }
+
+  private boolean hasBeenInitialized(
+      final ServiceReference<SecurityFilter> securityFilterServiceReference,
+      final BundleContext bundleContext) {
+    return keysOfInitializedSecurityFilters.contains(
+        getFilterKey(securityFilterServiceReference, bundleContext));
+  }
+
+  @Nonnull
+  private static String getFilterKey(
+      final ServiceReference<SecurityFilter> securityFilterServiceReference,
+      final BundleContext bundleContext) {
+    return getFilterName(securityFilterServiceReference, bundleContext);
+  }
+
+  private void initializeSecurityFilter(
+      BundleContext bundleContext,
+      ServiceReference<SecurityFilter> securityFilterServiceReference,
+      SecurityFilter securityFilter) {
+    final String filterName = getFilterName(securityFilterServiceReference, bundleContext);
+
+    securityFilter.init();
+    keysOfInitializedSecurityFilters.add(
+        getFilterKey(securityFilterServiceReference, bundleContext));
+    LOGGER.debug("Initialized SecurityFilter {}", filterName);
+  }
+
+  private static String getStringProperty(ServiceReference<?> serviceReference, String key) {
+    Object value = serviceReference.getProperty(key);
+    if (value != null && !(value instanceof String)) {
+      LOGGER.warn("Service property [key={}] value must be a String", key);
+      return null;
+    } else {
+      return (String) value;
     }
   }
 

@@ -39,6 +39,7 @@ import java.util.Base64;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import javax.servlet.ServletException;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
@@ -68,7 +69,6 @@ import org.apache.wss4j.common.saml.builder.SAML2Constants;
 import org.apache.wss4j.common.util.DOM2Writer;
 import org.codice.ddf.configuration.SystemBaseUrl;
 import org.codice.ddf.log.sanitizer.LogSanitizer;
-import org.codice.ddf.platform.filter.AuthenticationException;
 import org.codice.ddf.platform.filter.SecurityFilter;
 import org.codice.ddf.platform.util.HttpUtils;
 import org.codice.ddf.security.handler.BaseAuthenticationToken;
@@ -401,7 +401,7 @@ public class AssertionConsumerService {
     try {
       LOGGER.trace("Trying to login with provided SAML assertion.");
       loginFilter.doFilter(request, null, (servletRequest, servletResponse) -> {});
-    } catch (IOException | AuthenticationException e) {
+    } catch (IOException | ServletException e) {
       LOGGER.debug("Failed to apply login filter to SAML assertion", e);
       return false;
     }

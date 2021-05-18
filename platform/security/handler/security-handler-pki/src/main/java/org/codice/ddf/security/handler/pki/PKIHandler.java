@@ -15,8 +15,6 @@ package org.codice.ddf.security.handler.pki;
 
 import ddf.security.audit.SecurityLogger;
 import java.security.cert.X509Certificate;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.apache.shiro.authc.AuthenticationToken;
@@ -59,9 +57,9 @@ public class PKIHandler implements AuthenticationHandler {
    * org.codice.ddf.security.handler.api.HandlerResult} containing a BinarySecurityToken if the
    * operation was successful.
    *
-   * @param request http request to obtain attributes from and to pass into any local filter chains
-   *     required
-   * @param response http response to return http responses or redirects
+   * @param httpRequest http request to obtain attributes from and to pass into any local filter
+   *     chains required
+   * @param httpResponse http response to return http responses or redirects
    * @param chain original filter chain (should not be called from your handler)
    * @param resolve flag with true implying that credentials should be obtained, false implying
    *     return if no credentials are found.
@@ -69,24 +67,20 @@ public class PKIHandler implements AuthenticationHandler {
    */
   @Override
   public HandlerResult getNormalizedToken(
-      ServletRequest request,
-      ServletResponse response,
+      HttpServletRequest httpRequest,
+      HttpServletResponse httpResponse,
       SecurityFilterChain chain,
       boolean resolve) {
     HandlerResult handlerResult = new HandlerResultImpl(HandlerResult.Status.NO_ACTION, null);
     handlerResult.setSource(SOURCE);
 
-    HttpServletRequest httpRequest = (HttpServletRequest) request;
     String path = httpRequest.getServletPath();
     LOGGER.debug("Doing PKI authentication and authorization for path {}", path);
 
     // doesn't matter what the resolve flag is set to, we do the same action
     X509Certificate[] certs =
-        (X509Certificate[]) request.getAttribute("javax.servlet.request.X509Certificate");
-    AuthenticationToken token = tokenFactory.fromCertificates(certs, request.getRemoteAddr());
-
-    HttpServletResponse httpResponse =
-        response instanceof HttpServletResponse ? (HttpServletResponse) response : null;
+        (X509Certificate[]) httpRequest.getAttribute("javax.servlet.request.X509Certificate");
+    AuthenticationToken token = tokenFactory.fromCertificates(certs, httpRequest.getRemoteAddr());
 
     // The httpResponse was null, return no action and try to process with other handlers
     if (httpResponse == null && resolve) {
@@ -130,7 +124,9 @@ public class PKIHandler implements AuthenticationHandler {
 
   @Override
   public HandlerResult handleError(
-      ServletRequest servletRequest, ServletResponse servletResponse, SecurityFilterChain chain) {
+      HttpServletRequest servletRequest,
+      HttpServletResponse servletResponse,
+      SecurityFilterChain chain) {
     HandlerResult result = new HandlerResultImpl(HandlerResult.Status.NO_ACTION, null);
     result.setSource(SOURCE);
     LOGGER.debug("In error handler for pki - no action taken.");

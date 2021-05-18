@@ -35,7 +35,6 @@ import org.apache.cxf.ws.security.wss4j.AbstractWSS4JInterceptor;
 import org.apache.cxf.ws.security.wss4j.PolicyBasedWSS4JInInterceptor;
 import org.apache.cxf.ws.security.wss4j.WSS4JInInterceptor;
 import org.apache.shiro.subject.PrincipalCollection;
-import org.codice.ddf.platform.filter.AuthenticationException;
 import org.codice.ddf.security.handler.GuestAuthenticationToken;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -80,7 +79,7 @@ public class GuestInterceptor extends AbstractWSS4JInterceptor {
       Subject subject = null;
       try {
         subject = getSubject(request.getRemoteAddr());
-      } catch (AuthenticationException e) {
+      } catch (IllegalStateException e) {
         throw new Fault(e);
       }
       if (subject != null) {
@@ -100,12 +99,11 @@ public class GuestInterceptor extends AbstractWSS4JInterceptor {
     }
   }
 
-  private synchronized Subject getSubject(String ipAddress) throws AuthenticationException {
+  private synchronized Subject getSubject(String ipAddress) {
     Subject subject = guestSubjectCache.getIfPresent(ipAddress);
     if (subject == null) {
       if (securityManager == null) {
-        throw new AuthenticationException(
-            "Unable to create the guest subject, system is not ready.");
+        throw new IllegalStateException("Unable to create the guest subject, system is not ready.");
       }
       GuestAuthenticationToken token = new GuestAuthenticationToken(ipAddress, securityLogger);
       LOGGER.debug("Getting new Guest user token for {}", ipAddress);
